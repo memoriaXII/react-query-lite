@@ -19,7 +19,7 @@ export class QueryClient {
     this.queries = [];
   }
   //get a existing in the list, or create one and add to it (creating/getting)
-  getQuery = (options: any) => {
+  public getQuery = (options: any) => {
     const queryHash = JSON.stringify(options.queryKey);
 
     let query = this.queries.find((d: any) => d.queryHash === queryHash);
@@ -32,7 +32,7 @@ export class QueryClient {
   };
 }
 
-export function useQuery({ queryKey, queryFn, staleTime }: any) {
+export function useQuery({ queryKey, queryFn, staleTime, cacheTime }: any) {
   const client = React.useContext(QueryContext);
   //force component to re render
   const [, rerender] = React.useReducer((i) => i + 1, 0);
@@ -42,7 +42,8 @@ export function useQuery({ queryKey, queryFn, staleTime }: any) {
     observerRef.current = createQueryObserver(client, {
       queryKey,
       queryFn,
-      staleTime
+      staleTime,
+      cacheTime
     });
   }
   React.useEffect(() => {
@@ -55,12 +56,13 @@ export function ReactQueryDevTools() {
   return null;
 }
 
-export const createQuery = (client: any, { queryKey, queryFn }: any) => {
+export const createQuery = (client: any, { queryKey, queryFn, cacheTime = 5 * 60 * 1000 }: any) => {
   let query: any = {
     queryKey,
     queryHash: JSON.stringify(queryKey),
     promise: null,
     subscribers: [],
+    gcTimeout: null,
     state: {
       status: 'loading',
       isFetching: false,
@@ -69,10 +71,23 @@ export const createQuery = (client: any, { queryKey, queryFn }: any) => {
     },
     subscribe: (subscriber: any) => {
       query.subscribers.push(subscriber);
+      query.unScheduleGC();
       //unsubscribe
       return () => {
         query.subscribers = query.subscribers.filter((d: any) => d !== subscriber);
+        if (!query.subscribers.length) {
+          query.scheduleGC();
+        }
       };
+    },
+    //garbage collection
+    scheduleGC: () => {
+      query.gcTimeout = setTimeout(() => {
+        client.queries = client.queries.filter((d: any) => d !== query);
+      }, cacheTime);
+    },
+    unScheduleGC: () => {
+      clearTimeout(query.gcTimeout);
     },
     setState: (updater: any) => {
       //more like a reducer
@@ -124,14 +139,17 @@ function createQueryObserver(
   {
     queryKey,
     queryFn,
-    staleTime = 0
+    //@param: staleTime: Refers to how long it takes for the data to expire
+    staleTime = 0,
+    cacheTime
   }: {
     queryKey: any;
     queryFn: any;
-    staleTime: any;
+    staleTime: number;
+    cacheTime: number;
   }
 ) {
-  const query = client.getQuery({ queryKey, queryFn });
+  const query = client.getQuery({ queryKey, queryFn, cacheTime });
   const observer = {
     notify: () => {},
     getResult: () => query.state,

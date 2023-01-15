@@ -27,8 +27,10 @@ const usePosts = () => {
       await sleep(1000);
       const { data } = await axios.get('http://jsonplaceholder.typicode.com/posts');
       return data.slice(0, 5);
-    }
-    // staleTime: 3000
+    },
+    //@param: staleTime: Refers to how long it takes for the data to expire
+    staleTime: 3000,
+    cacheTime: 5000
   });
 };
 
@@ -39,8 +41,9 @@ const usePost = (postId) => {
       await sleep(1000);
       const { data } = await axios.get(`http://jsonplaceholder.typicode.com/posts/${postId}`);
       return data;
-    }
-    // staleTime: 3000
+    },
+    staleTime: 3000,
+    cacheTime: 5000
   });
 };
 
