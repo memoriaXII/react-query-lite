@@ -1,2 +1,2 @@
-# react-query-breakdown
+# react-query-lite
 
