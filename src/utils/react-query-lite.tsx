@@ -19,12 +19,14 @@ export class QueryClient {
     this.queries = [];
   }
   //get a existing in the list, or create one and add to it (creating/getting)
-  public getQuery = (options: any) => {
+  getQuery = (options: any) => {
     const queryHash = JSON.stringify(options.queryKey);
+
     let query = this.queries.find((d: any) => d.queryHash === queryHash);
     //check if the query is already exists
     if (!query) {
       query = createQuery(this, options);
+      this.queries.push(query);
     }
     return query;
   };
@@ -54,10 +56,9 @@ export function ReactQueryDevTools() {
 }
 
 export const createQuery = (client: any, { queryKey, queryFn }: any) => {
-  console.log(client, 'client');
   let query: any = {
     queryKey,
-    queryFn: JSON.stringify(queryFn),
+    queryHash: JSON.stringify(queryKey),
     promise: null,
     subscribers: [],
     state: {
@@ -125,16 +126,16 @@ function createQueryObserver(
     queryFn,
     staleTime = 0
   }: {
-    staleTime: any;
     queryKey: any;
     queryFn: any;
+    staleTime: any;
   }
 ) {
   const query = client.getQuery({ queryKey, queryFn });
   const observer = {
     notify: () => {},
     getResult: () => query.state,
-    subscribe: (callback: () => void) => {
+    subscribe: (callback: any) => {
       observer.notify = callback;
       const unsubscribe = query.subscribe(observer);
       observer.fetch();

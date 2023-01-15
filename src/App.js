@@ -27,8 +27,8 @@ const usePosts = () => {
       await sleep(1000);
       const { data } = await axios.get('http://jsonplaceholder.typicode.com/posts');
       return data.slice(0, 5);
-    },
-    staleTime: 3000
+    }
+    // staleTime: 3000
   });
 };
 
@@ -39,8 +39,8 @@ const usePost = (postId) => {
       await sleep(1000);
       const { data } = await axios.get(`http://jsonplaceholder.typicode.com/posts/${postId}`);
       return data;
-    },
-    staleTime: 3000
+    }
+    // staleTime: 3000
   });
 };
 
@@ -93,7 +93,10 @@ const Post = ({ postId, setPostId }) => {
       {!postId || postQuery.status === 'loading' ? (
         <div className="text-teal-500">Loading</div>
       ) : (
-        <div>{postQuery.data.body}</div>
+        <div>
+          <h1>{postQuery.data.title}</h1>
+          <p>{postQuery.data.body}</p>
+        </div>
       )}
       <div>{postQuery.isFetching && 'Backround Updating.......'}</div>
     </div>
