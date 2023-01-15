@@ -5,7 +5,6 @@ import { IQueryContext } from '../types/query.type';
 export const QueryContext = React.createContext<Partial<IQueryContext>>({});
 
 interface Props {
-  // any props that come into the component
   children?: ReactNode;
   client: any;
 }
@@ -31,20 +30,19 @@ export class QueryClient {
   };
 }
 
-export function useQuery({ queryKey, queryFn }: any) {
+export function useQuery({ queryKey, queryFn, staleTime }: any) {
   const client = React.useContext(QueryContext);
   //force component to re render
   const [, rerender] = React.useReducer((i) => i + 1, 0);
-
   //observer logic
   const observerRef: any = React.useRef();
   if (!observerRef.current) {
     observerRef.current = createQueryObserver(client, {
       queryKey,
-      queryFn
+      queryFn,
+      staleTime
     });
   }
-  console.log(observerRef.current, 'observerRef.current');
   React.useEffect(() => {
     return observerRef.current.subscribe(rerender);
   }, []);
@@ -95,6 +93,7 @@ export const createQuery = (client: any, { queryKey, queryFn }: any) => {
             query.setState((old: any) => ({
               ...old,
               status: 'success',
+              lastUpdated: Date.now(),
               data
             }));
           } catch (error) {
@@ -123,8 +122,10 @@ function createQueryObserver(
   client: any,
   {
     queryKey,
-    queryFn
+    queryFn,
+    staleTime = 0
   }: {
+    staleTime: any;
     queryKey: any;
     queryFn: any;
   }
@@ -136,8 +137,13 @@ function createQueryObserver(
     subscribe: (callback: () => void) => {
       observer.notify = callback;
       const unsubscribe = query.subscribe(observer);
-      query.fetch();
+      observer.fetch();
       return unsubscribe;
+    },
+    fetch: () => {
+      if (!query.state.lastUpdated || Date.now() - query.state.lastUpdated > staleTime) {
+        query.fetch();
+      }
     }
   };
   return observer;
